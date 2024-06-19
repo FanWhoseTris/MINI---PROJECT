@@ -1,0 +1,204 @@
+MDFloatLayout:
+    ScreenManager:
+        id: screen_manager
+        Screen:
+            name: "main_screen"
+            MDLabel:
+                id: task_label
+                halign: 'center'
+                markup: True
+                text: "[u][size=48][b]WorkWise[/b][/size][/u]"
+                pos_hint: {'y': .45}
+                theme_text_color: "Custom"
+                text_color: 1, 0, 0, 1
+            ScrollView:
+                pos_hint: {'center_y': .5, 'center_x': .5}
+                size_hint: .9, .8
+                MDList:
+                    id: container
+            MDIconButton:
+                id: menu_btn
+                icon: "menu"
+                pos_hint: {'x': 0.001, 'top': 0.99}
+                elevation_normal: 12
+                on_release: app.show_menu()
+                md_bg_color: app.theme_cls.primary_color
+            MDIconButton:
+                id: add_task_button
+                icon: 'plus-thick'
+                on_release: app.show_task_dialog()
+                elevation_normal: 12
+                pos_hint: {'x': .45 , 'y': .04}
+                md_bg_color: app.theme_cls.primary_color
+                opacity: 1 if app.show_add_task_button else 0
+        Screen:
+            name: "efficiency_screen"
+            EfficiencyScreen:
+                id: efficiency_screen
+
+<EfficiencyScreen>:
+    md_bg_color: 1, 1, 1, 1
+    AnchorLayout:
+        anchor_x: 'left'
+        anchor_y: 'top'
+        MDIconButton:
+            id: menu_btn
+            icon: "menu"
+            pos_hint: {'x': .05 , 'top': 1}
+            elevation_normal: 12
+            on_release: app.show_menu()
+            md_bg_color: app.theme_cls.primary_color
+    CircularProgressBar:
+        id: circular_progress
+        size_hint: None, None
+        size: 400, 400
+        pos_hint: {"center_x": .5, "center_y": .5}
+        value: 0
+        bar_color: [1, 0, 0]
+    MDLabel:
+        halign: 'center'
+        markup: True
+        text: "[size=48][b]Hiệu Suất Hôm Nay[/b][/size]"
+        pos_hint: {'y': .35}
+        theme_text_color: "Custom"
+        text_color: 1, 0, 0, 1
+<CircularProgressBar>
+    canvas.before:
+        Color:
+            rgba: root.bar_color + [0.3]
+        Line:
+            width: root.bar_width
+            ellipse: (self.x, self.y, self.width, self.height, 0, 360)
+
+    canvas.after:
+        Color:
+            rgb: root.bar_color
+        Line:
+            width: root.bar_width
+            ellipse: (self.x, self.y, self.width, self.height, 0, root.set_value*3.6)
+    MDLabel:
+        text: root.text
+        font_size: "40sp"
+        pos_hint: {"center_x": .5, "center_y": .5}
+        halign: "center"
+        color: root.bar_color
+
+<DialogContent>:
+    orientation: "vertical"
+    spacing: "10dp"
+    size_hint: 1, None
+    height: "240dp"
+
+    MDTextField:
+        id: task_text
+        hint_text: "Add Task..."
+        pos_hint: {"center_y": .9}
+        max_text_length: 50
+        on_text_validate: (app.add_task(task_text.text, date_text.text, time_text.text), app.close_dialog())
+
+    GridLayout:
+        cols: 2
+        spacing: "10dp"
+
+        MDIconButton:
+            icon: 'calendar'
+            on_release: root.show_date_picker()
+
+        MDIconButton:
+            id: time_btn
+            icon: 'clock'
+            on_release: root.show_time_picker()
+
+    MDLabel:
+        id: date_text
+        pos_hint: {"center_y": .5}
+
+    MDLabel:
+        id: time_text
+        pos_hint: {"center_y": .5}
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: None
+        height: "36dp"
+
+        MDRaisedButton:
+            text: "SAVE"
+            disabled: time_text.text == ""
+            on_release: app.add_task(task_text.text, date_text.text, time_text.text); app.close_dialog()
+
+        MDFlatButton:
+            text: 'CANCEL'
+            on_release: app.close_dialog()
+
+<DialogEdit>:
+    orientation: "vertical"
+    spacing: "10dp"
+    size_hint: 1, None
+    height: "300dp"
+
+    MDTextField:
+        id: edit_task_text
+        hint_text: "Edit Task..."
+        pos_hint: {"center_y": .9}
+        max_text_length: 50
+        on_text_validate: app.edit_task(edit_task_text.text, edit_date_text.text, edit_time_text.text, the_list_item.pk); app.close_dialog()
+
+    GridLayout:
+        cols: 2
+        spacing: "10dp"
+
+        MDIconButton:
+            icon: 'calendar'
+            on_release: root.show_date_picker()
+
+        MDIconButton:
+            id: time_btn
+            icon: 'clock'
+            on_release: root.show_time_picker()
+
+    MDLabel:
+        id: edit_date_text
+        pos_hint: {"center_y": .5}
+
+    MDLabel:
+        id: edit_time_text
+        pos_hint: {"center_y": .5}
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: None
+        height: "36dp"
+
+        MDRaisedButton:
+            text: "SAVE"
+            on_release: app.edit_task(edit_task_text.text, edit_date_text.text, edit_time_text.text, root.list_item.pk); app.close_edit_dialog()
+
+        MDFlatButton:
+            text: 'CANCEL'
+            on_release: app.close_edit_dialog()
+
+<ListItemWithCheckbox>:
+    id: the_list_item
+    markup: True
+
+    LeftCheckbox:
+        id: check
+        on_active:
+            app.on_checkbox_active(check, check.active, the_list_item) if check.active else \
+            app.on_checkbox_deactivate(check, check.active, the_list_item)
+
+    IconRightWidget:
+        icon: "pencil"
+        theme_text_color: "Custom"
+        text_color: 0, 0, 0, 1
+        size_hint_x: 0.3
+        padding: [-0, 0, 0, 0]
+        on_release: app.show_edit_dialog(the_list_item)
+    IconRightWidget:
+        icon: 'trash-can-outline'
+        theme_text_color: "Custom"
+        text_color: 1, 0, 0, 1
+        size_hint_x: 0.3
+        padding: [20, 0, 0, 0]
+        on_release: app.delete_item(the_list_item)

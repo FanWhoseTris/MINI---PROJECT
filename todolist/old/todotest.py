@@ -5,11 +5,11 @@ from datetime import datetime, timedelta
 from plyer import notification
 from tkinter import ttk, messagebox
 
+
 class TodoListApp:
     def __init__(self, root):
         try:
             self.root = root
-            self.topic = []
             # Thiết lập các thuộc tính của cửa sổ
             self.root.title("TASKS LIST SYSTEM")
             self.root.attributes('-topmost', True)
@@ -31,11 +31,13 @@ class TodoListApp:
                                   insertbackground="#ffffff")
             self.entry.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
             # Entry thứ hai ở bên phải
-            self.combobox = ttk.Combobox(self.entry_frame, width=10, font=("Helvetica", 16, 'bold'), state="readonly")
-            self.combobox.pack(side=tk.RIGHT, padx=5, pady=5, fill=tk.X, expand=True)
-            self.combobox.set("none")
-            # Gán sự kiện nhấn Enter cho ô nhập liệu và Combobox
+            self.rentry = tk.Entry(self.entry_frame, width=10, font=("Helvetica", 16, 'bold'), bg="#444444",
+                                   fg="#ffffff",
+                                   insertbackground="#ffffff")
+            self.rentry.pack(side=tk.RIGHT, padx=5, pady=5, fill=tk.X, expand=True)
+            # Gán sự kiện nhấn Enter cho ô nhập liệu
             self.entry.bind('<Return>', self.add_task_event)
+            self.rentry.bind('<Return>', self.add_task_event)
             # Frame để chứa các nút ở trên Listbox
             self.buttons_frame = tk.Frame(self.root, bg="#222121")
             self.buttons_frame.pack(fill=tk.X, padx=10, pady=5)
@@ -113,7 +115,7 @@ class TodoListApp:
             self.get_cur_level()
 
             self.Done_button = tk.Button(self.progress_frame, text="Done", command=self.done, width=5, bg="#333333",
-                                         fg="#ffffff")
+                                        fg="#ffffff")
             self.Done_button.pack(side=tk.LEFT, padx=5)
 
             self.set_button = tk.Button(self.progress_frame, text="Set", command=self.set, width=5, bg="#333333",
@@ -132,6 +134,7 @@ class TodoListApp:
                                        fg="#ffffff")
             self.ok_button.pack(side=tk.LEFT, padx=5)
 
+
             # Label đếm ngược thời gian đặt ngang hàng
 
             self.hour_entry = tk.Entry(self.timer_frame, width=5, font=("Helvetica", 12), bg="#444444", fg="#ffffff")
@@ -140,9 +143,11 @@ class TodoListApp:
             self.min_entry = tk.Entry(self.timer_frame, width=5, font=("Helvetica", 12), bg="#444444", fg="#ffffff")
             self.min_entry.pack(side=tk.LEFT, padx=5)
 
+
             self.countdown_label = tk.Label(self.timer_frame, font=("Helvetica", 16, 'bold'), bg="#222121",
                                             fg="#ffffff")
             self.countdown_label.pack(side=tk.LEFT, padx=10)
+
 
             # Biến để lưu trữ ID của hàm after
             self.after_id = None
@@ -155,36 +160,6 @@ class TodoListApp:
             return
         except:
             messagebox.showerror("Error", f" GUI INIT !!!")
-            return
-
-    def load_tasks(self):
-        try:
-            # Xóa tất cả các dòng hiện có trong Treeview
-            for item in self.tree.get_children():
-                self.tree.delete(item)
-            self.topic = []
-            # Load tasks từ cơ sở dữ liệu và hiển thị trong Listbox
-            self.cursor.execute('SELECT main, task, reward, topic FROM tasks WHERE task!=? ORDER  BY topic',
-                                ('original task name',))
-            tasks = self.cursor.fetchall()
-            print(tasks)
-            cur_topic = 'nonádasdasde'
-            # Đăng ký thẻ với màu nền vàng
-            self.tree.tag_configure('black', background='black')
-            for main, task, reward, topic in tasks:
-                if topic != cur_topic:
-                    self.topic.append(topic)
-                    self.tree.insert("", "end", values=("----------------TOPIC----------------", topic),
-                                     tags=('black',))
-                    cur_topic = topic
-                if not main:
-                    self.tree.insert("", "end", values=(f"{task}", reward))
-                else:
-                    self.tree.insert("", "end", values=(f"[X]{task}", reward))
-            self.combobox['values'] = self.topic
-            return
-        except:
-            messagebox.showerror("Error", f"LOAD TASK !!!")
             return
     def start_timer(self):
         try:
@@ -267,13 +242,9 @@ class TodoListApp:
         try:
             quick_edit_window = tk.Toplevel(self.root)
             quick_edit_window.title("EDIT")
-            quick_edit_window.geometry("300x390")
+            quick_edit_window.geometry("300x320")
             quick_edit_window.configure(bg="#222121")
             quick_edit_window.attributes('-topmost', True)
-            group_label = tk.Label(quick_edit_window, text="Add Group:", fg="#ffffff", bg="#222121")
-            group_label.pack(padx=10, pady=5)
-            group_entry = tk.Entry(quick_edit_window)
-            group_entry.pack(padx=10, pady=5)
             old_word_label = tk.Label(quick_edit_window, text="Current Reward:", fg="#ffffff", bg="#222121")
             old_word_label.pack(padx=10, pady=5)
             old_word_entry = tk.Entry(quick_edit_window)
@@ -283,72 +254,21 @@ class TodoListApp:
                                 bg="#222121", insertbackground="white")
             text_area.pack(padx=10, pady=5)
             def comfirm_word_mean():
-                try:
-                    if group_entry.get().strip():
-                        self.topic.append(group_entry.get())
-                        self.combobox['values'] = self.topic
-                    self.minutes_entry.delete(0, tk.END)
-                    new_reward = old_word_entry.get().rstrip(',')
-                    self.cursor.execute('UPDATE tasks SET reward = ? WHERE task = ?',
-                                        (new_reward, 'original task name',))
-                    self.conn.commit()
-                    content = text_area.get("1.0", tk.END).strip()
-                    conn = sqlite3.connect('setting.db')
-                    cursor = conn.cursor()
-                    cursor.execute('UPDATE setting SET history = ?',
-                                   (content,))
-                    conn.commit()
-                    conn.close()
-                    quick_edit_window.destroy()
-                    return
-                except:
-                    return
-            def exporting():
-                try:
-                    squick_edit_window = tk.Toplevel(self.root)
-                    squick_edit_window.title("EDIT")
-                    squick_edit_window.geometry("480x460")
-                    squick_edit_window.configure(bg="#222121")
-                    squick_edit_window.attributes('-topmost', True)
-                    group_label = tk.Label(squick_edit_window, text="Export Data", fg="#ffffff", bg="#222121")
-                    group_label.pack(padx=10, pady=5)
-                    text_area = tk.Text(squick_edit_window, height=16, width=47, font=("Helvetica", 14), fg="#ffffff",
-                                        bg="#222121", insertbackground="white")
-                    text_area.pack(padx=10, pady=5)
-
-                    def get():
-                        # Fetch tasks from the database
-                        self.cursor.execute('SELECT task, reward, topic, note FROM tasks WHERE task!=? ORDER BY topic',
-                                            ('original task name',))
-                        tasks = self.cursor.fetchall()
-
-                        # Format the tasks and insert them into text_area
-                        formatted_text = ""
-                        for task, reward, topic, note in tasks:
-                            formatted_text += f"Task: {task}\nReward: {reward}\nTopic: {topic}\nNote: {note}\n\n"
-
-                        return formatted_text
-
-                    def save():
-                        squick_edit_window.destroy()
-                        return
-
-                    formatted_text = get()
-                    text_area.insert(tk.END, formatted_text)
-                    ok_button = tk.Button(squick_edit_window, text="OK", command=save, font=("Helvetica", 14))
-                    ok_button.pack(padx=3, pady=3)
-                    return
-                except:
-                    return
-
+                new_reward = old_word_entry.get().rstrip(',')
+                self.cursor.execute('UPDATE tasks SET reward = ? WHERE task = ?', (new_reward,'original task name',))
+                self.conn.commit()
+                content = text_area.get("1.0", tk.END).strip()
+                conn = sqlite3.connect('setting.db')
+                cursor = conn.cursor()
+                cursor.execute('UPDATE setting SET history = ?',
+                               (content,))
+                conn.commit()
+                conn.close()
+                quick_edit_window.destroy()
+                return
             text_area.insert(tk.END, self.get_history())
-
-            e_button = tk.Button(quick_edit_window, text="Export", command=exporting, font=("Helvetica", 14))
-            e_button.pack(side=tk.RIGHT)
-
             ok_button = tk.Button(quick_edit_window, text="OK", command=comfirm_word_mean, font=("Helvetica", 14))
-            ok_button.pack(side=tk.RIGHT, padx=52)
-
+            ok_button.pack(padx=10, pady=5)
             self.clear_selection()
             return
         except:
@@ -361,8 +281,6 @@ class TodoListApp:
                 task_name = self.tree.item(selected_item, 'values')[0]
                 if task_name.startswith("[X]"):
                     task_name = task_name[3:]
-                elif task_name=="----------------TOPIC----------------":
-                    return
                 print(task_name)
                 reward = self.tree.item(selected_item, 'values')[1]
                 self.cursor.execute('DELETE FROM tasks WHERE task = ?', (task_name,))
@@ -418,8 +336,6 @@ class TodoListApp:
                 task_name = self.tree.item(selected_item, 'values')[0]
                 if task_name.startswith("[X]"):
                     task_name = task_name[3:]
-                elif task_name == "----------------TOPIC----------------":
-                    return
                 self.cursor.execute('SELECT note FROM tasks WHERE task = ?', (task_name,))
                 notes = self.cursor.fetchall()[0]
                 print(notes)
@@ -485,33 +401,6 @@ class TodoListApp:
                 task_name = self.tree.item(selected_item, 'values')[0]
                 if task_name.startswith("[X]"):
                     task_name = task_name[3:]
-                elif task_name == "----------------TOPIC----------------":
-                    old_topic = self.tree.item(selected_item, 'values')[1]
-                    quick_edit_window = tk.Toplevel(self.root)
-                    quick_edit_window.title("EDIT")
-                    quick_edit_window.geometry("300x150")
-                    quick_edit_window.configure(bg="#222121")
-                    quick_edit_window.attributes('-topmost', True)
-                    old_word_label = tk.Label(quick_edit_window, text="Old task:", fg="#ffffff", bg="#222121")
-                    old_word_label.pack(padx=10, pady=5)
-                    old_word_entry = tk.Entry(quick_edit_window)
-                    old_word_entry.pack(padx=10, pady=5)
-                    old_word_entry.insert(0, old_topic)
-
-                    def comfirm_word_mean():
-                        new_topic = old_word_entry.get().strip()  # Nhận topic cũ từ input
-                        if old_topic != new_topic:
-                            # Cập nhật tất cả các bản ghi có topic là old_topic thành topic mới
-                            self.cursor.execute('UPDATE tasks SET topic = ? WHERE topic = ?', (new_topic, old_topic))
-                            self.conn.commit()  # Lưu thay đổi vào cơ sở dữ liệu
-                            self.load_tasks()  # Tải lại các task sau khi cập nhật
-                        self.load_tasks()  # Tải lại các task sau khi cập nhật
-                        quick_edit_window.destroy()  # Đóng cửa sổ chỉnh sửa nhanh
-
-                    ok_button = tk.Button(quick_edit_window, text="OK", command=comfirm_word_mean,
-                                          font=("Helvetica", 14))
-                    ok_button.pack(padx=10, pady=5)
-                    return
                 print(task_name)
                 reward = self.tree.item(selected_item, 'values')[1]
                 quick_edit_window = tk.Toplevel(self.root)
@@ -581,53 +470,70 @@ class TodoListApp:
             messagebox.showerror("Error", f" get sentences !!!")
             return
     def create_table(self):
-        # Tạo bảng task nếu nó chưa tồn tại
-        self.cursor.execute('''
-                                CREATE TABLE IF NOT EXISTS tasks (
-                                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                    task TEXT NOT NULL,
-                                    main INTEGER DEFAULT 0,
-                                    note TEXT DEFAULT '',
-                                    reward TEXT DEFAULT '',
-                                    topic TEXT DEFAULT 'none'
-                                )
-                            ''')
-        self.cursor.execute('SELECT COUNT(*) FROM tasks')
-        task_count = self.cursor.fetchone()[0]
-
-        if task_count == 0:
-            # Thêm task với giá trị mặc định
-            self.cursor.execute('''
-                            INSERT INTO tasks (task, main, note, reward)
-                            VALUES (?, ?, ?, ?)
-                        ''', ('original task name', 0, '', ''))
-        self.conn.commit()
         try:
-            return
+            # Tạo bảng task nếu nó chưa tồn tại
+            self.cursor.execute('''
+                        CREATE TABLE IF NOT EXISTS tasks (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            task TEXT NOT NULL,
+                            main INTEGER DEFAULT 0,
+                            note TEXT,
+                            reward TEXT DEFAULT ''
+                        )
+                    ''')
+            self.cursor.execute('SELECT COUNT(*) FROM tasks')
+            task_count = self.cursor.fetchone()[0]
+
+            if task_count == 0:
+                # Thêm task với giá trị mặc định
+                self.cursor.execute('''
+                    INSERT INTO tasks (task, main, note, reward)
+                    VALUES (?, ?, ?, ?)
+                ''', ('original task name', 0, '', ''))
+            self.conn.commit()
         except:
             messagebox.showerror("Error", f" create table db !!!")
             return
     def add_task(self):
         try:
             task = self.entry.get()
-            topic = self.combobox.get()
-            print(task, topic)
+            reward = self.rentry.get()
             if task:
-                reward = random.choice(self.get_reward().split(','))
-                print("task:", task, "reward:", reward, "topic:", topic)
-                self.cursor.execute('INSERT INTO tasks (task, reward, topic) VALUES (?, ?, ?)', (task, reward, topic))
+                if not reward:
+                    reward = random.choice(self.get_reward().split(','))
+                self.cursor.execute('INSERT INTO tasks (task, reward) VALUES (?, ?)', (task, reward))
                 self.conn.commit()
                 self.tree.insert("", "end", values=(task, reward))
                 self.entry.delete(0, tk.END)
-                self.combobox.set("none")
+                self.rentry.delete(0, tk.END)
                 self.load_tasks()
             self.clear_selection()
-            return
         except:
             messagebox.showerror("Error", f"ADD TASK !!!")
             return
     def add_task_event(self, event):
         self.add_task()
+    def load_tasks(self):
+        try:
+            # Xóa tất cả các dòng hiện có trong Treeview
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+
+            # Load tasks từ cơ sở dữ liệu và hiển thị trong Listbox
+            self.cursor.execute('SELECT main, task, reward FROM tasks')
+            tasks = self.cursor.fetchall()
+            print(tasks)
+            tasks = reversed(tasks[1:])
+            for main, task, reward in tasks:
+                if not main:
+                    self.tree.insert("", "end", values=(f"{task}", reward))
+                else:
+
+                    self.tree.insert("", "end", values=(f"[X]{task}", reward))
+            return
+        except:
+            messagebox.showerror("Error", f"LOAD TASK !!!")
+            return
     def open_task(self):
         try:
             cup = tk.Toplevel(self.root)
@@ -644,9 +550,6 @@ class TodoListApp:
                 self.cursor.execute('UPDATE tasks SET main = 1 WHERE task = ?', (task_name,))
                 self.conn.commit()
                 self.load_tasks()
-            else:
-                popup = tk.Toplevel(self.root)
-                CountTimer(popup)
             return
         except:
             messagebox.showerror("Error", f" Main Task !!!")
@@ -661,8 +564,6 @@ class TodoListApp:
                     print(task_name)
                     if task_name.startswith("[X]"):
                         task_name = task_name[3:]
-                    elif task_name == "----------------TOPIC----------------":
-                        return
                     self.cursor.execute('DELETE FROM tasks WHERE task = ?', (task_name,))
                     self.conn.commit()
                     self.tree.delete(item)
